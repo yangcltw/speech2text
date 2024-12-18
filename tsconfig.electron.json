@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["node_modules/*"]
+    },
+    "allowJs": true,
+    "skipLibCheck": true,
+    "types": ["node", "electron", "ws"]
+  },
+  "include": ["src/main/**/*"],
+  "exclude": ["node_modules"]
+}

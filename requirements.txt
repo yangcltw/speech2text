@@ -1,0 +1,40 @@
+# Web 框架
+fastapi>=0.100.0,<0.105.0
+uvicorn>=0.22.0,<0.25.0
+websockets>=11.0,<13.0
+python-multipart>=0.0.6,<0.1.0
+
+# 科學計算
+numpy>=1.24.0,<1.25.0
+scipy>=1.10.0,<1.11.0
+scikit-learn>=1.3.0,<1.4.0
+
+# 音訊處理
+librosa>=0.10.0,<0.11.0
+soundfile>=0.12.0,<0.13.0
+ffmpeg
+pyaudio
+
+# 語音辨識
+openai-whisper
+faster-whisper>=0.8.0,<0.9.0
+
+# 機器學習
+--find-links https://download.pytorch.org/whl/cpu
+torch>=2.0.0,<2.1.0
+torchaudio>=2.0.0,<2.1.0
+speechbrain>=0.5.14,<0.6.0
+transformers>=4.30.0
+sentencepiece>=0.1.99
+
+# NLP 和向量存儲
+langchain>=0.0.300,<0.1.0
+chromadb>=0.4.0,<0.5.0
+sentence-transformers>=2.2.0
+
+# 設定和工具
+pydantic-settings>=2.0.0,<3.0.0
+python-dotenv>=1.0.0,<2.0.0
+
+# 系統工具
+psutil>=5.9.0
