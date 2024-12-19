@@ -12,6 +12,7 @@ export default defineConfig({
     lib: {
       entry: {
         main: resolve(__dirname, 'src/main/index.ts'),
+        preload: resolve(__dirname, 'src/main/preload.ts')
       },
       formats: ['es'],
     },

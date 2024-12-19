@@ -1,5 +1,6 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
 import WebSocket from 'ws';
+import * as fs from 'node:fs';
 
 interface WSMessage {
   type: string;
@@ -81,15 +82,15 @@ export function setupIPC(mainWindow: BrowserWindow): void {
       }
 
       return new Promise<void>((resolve, reject) => {
-        ws!.send(JSON.stringify({ type: 'start_recording' }), (error) => {
-          if (error) {
-            console.error('Failed to send start recording message:', error);
-            reject(error);
-          } else {
-            console.log('Start recording message sent');
-            resolve();
-          }
-        });
+        try {
+          const message = JSON.stringify({ type: 'start_recording' });
+          ws?.send(message);
+          console.log('Start recording message sent');
+          resolve();
+        } catch (err) {
+          console.error('Failed to send start recording message:', err);
+          reject(err);
+        }
       });
     } catch (error) {
       console.error('Start recording error:', error);
@@ -104,15 +105,15 @@ export function setupIPC(mainWindow: BrowserWindow): void {
       }
 
       return new Promise<void>((resolve, reject) => {
-        ws!.send(JSON.stringify({ type: 'stop_recording' }), (error) => {
-          if (error) {
-            console.error('Failed to send stop recording message:', error);
-            reject(error);
-          } else {
-            console.log('Stop recording message sent');
-            resolve();
-          }
-        });
+        try {
+          const message = JSON.stringify({ type: 'stop_recording' });
+          ws?.send(message);
+          console.log('Stop recording message sent');
+          resolve();
+        } catch (err) {
+          console.error('Failed to send stop recording message:', err);
+          reject(err);
+        }
       });
     } catch (error) {
       console.error('Stop recording error:', error);
@@ -146,22 +147,52 @@ export function setupIPC(mainWindow: BrowserWindow): void {
       }
 
       return new Promise<void>((resolve, reject) => {
-        ws!.send(JSON.stringify({ 
-          type: 'process_audio_file',
-          data: { filePath }
-        }), (error) => {
-          if (error) {
-            console.error('Failed to send process file message:', error);
-            reject(error);
-          } else {
-            console.log('Process file message sent');
-            resolve();
-          }
-        });
+        try {
+          const message = JSON.stringify({ 
+            type: 'process_audio_file',
+            data: { filePath }
+          });
+          ws?.send(message);
+          console.log('Process file message sent');
+          resolve();
+        } catch (err) {
+          console.error('Failed to send process file message:', err);
+          reject(err);
+        }
       });
     } catch (error) {
       console.error('Process audio file error:', error);
       throw error;
+    }
+  });
+
+  // Add save file handler
+  ipcMain.handle('save-transcription', async (_event, text: string) => {
+    try {
+      const result = await dialog.showSaveDialog({
+        title: 'Save Transcription',
+        defaultPath: `transcription-${new Date().toISOString().split('T')[0]}.txt`,
+        filters: [
+          { name: 'Text Files', extensions: ['txt'] }
+        ]
+      });
+
+      if (!result.canceled && result.filePath) {
+        return new Promise<{ success: boolean; filePath?: string; error?: string }>((resolve, reject) => {
+          fs.writeFile(result.filePath, text, 'utf8', (err: NodeJS.ErrnoException | null) => {
+            if (err) {
+              console.error('Save file error:', err);
+              resolve({ success: false, error: err.message });
+            } else {
+              resolve({ success: true, filePath: result.filePath });
+            }
+          });
+        });
+      }
+      return { success: false, error: 'Operation cancelled' };
+    } catch (error) {
+      console.error('Save file error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
 

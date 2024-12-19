@@ -1,5 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Type definitions
+type IpcRendererEvent = Electron.IpcRendererEvent;
+type TranscriptionErrorHandler = (error: { message: string }) => void;
+type TranscriptionDataHandler = (data: any) => void;
+
 // Create API implementation
 const api = {
   startRecording: () => {
@@ -29,7 +34,7 @@ const api = {
       });
   },
 
-  processAudioFile: (path) => {
+  processAudioFile: (path: string) => {
     console.log('Calling processAudioFile from preload with path:', path);
     return ipcRenderer.invoke('process-audio-file', path)
       .catch(error => {
@@ -38,8 +43,17 @@ const api = {
       });
   },
 
-  onTranscriptionProgress: (callback) => {
-    const handler = (_event, data) => {
+  saveTranscription: (text: string) => {
+    console.log('Calling saveTranscription from preload');
+    return ipcRenderer.invoke('save-transcription', text)
+      .catch(error => {
+        console.error('IPC saveTranscription error:', error);
+        throw error;
+      });
+  },
+
+  onTranscriptionProgress: (callback: TranscriptionDataHandler) => {
+    const handler = (_event: IpcRendererEvent, data: any) => {
       try {
         callback(data);
       } catch (error) {
@@ -52,8 +66,8 @@ const api = {
     };
   },
 
-  onTranscriptionComplete: (callback) => {
-    const handler = (_event, data) => {
+  onTranscriptionComplete: (callback: TranscriptionDataHandler) => {
+    const handler = (_event: IpcRendererEvent, data: any) => {
       try {
         callback(data);
       } catch (error) {
@@ -66,10 +80,10 @@ const api = {
     };
   },
 
-  onError: (callback) => {
-    const handler = (_event, error) => {
+  onError: (callback: TranscriptionErrorHandler) => {
+    const handler = (_event: IpcRendererEvent, error: { message: string }) => {
       try {
-        callback(error);
+        callback({ message: error.message || 'Unknown error' });
       } catch (err) {
         console.error('Error in error handler:', err);
       }

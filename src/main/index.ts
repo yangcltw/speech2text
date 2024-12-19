@@ -37,6 +37,8 @@ async function waitForDevServer(url: string): Promise<void> {
   });
 }
 
+let ipcSetup = false;
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -59,8 +61,11 @@ async function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Window loaded');
   });
-  if (mainWindow) {
+
+  // Only setup IPC once
+  if (!ipcSetup && mainWindow) {
     setupIPC(mainWindow);
+    ipcSetup = true;
   }
 
   try {
@@ -80,6 +85,7 @@ async function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    ipcSetup = false;  // Reset IPC setup flag when window is closed
   });
 }
 
