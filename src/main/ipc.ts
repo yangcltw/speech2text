@@ -29,7 +29,27 @@ export function setupIPC(mainWindow: BrowserWindow): void {
           try {
             const message = JSON.parse(data.toString()) as WSMessage;
             console.log('Received message:', message);
-            mainWindow?.webContents.send('transcription-progress', message);
+
+            // Forward all message types to renderer
+            switch (message.type) {
+              case 'transcription_progress':
+                mainWindow?.webContents.send('transcription-progress', message.data);
+                break;
+              case 'transcription_complete':
+                mainWindow?.webContents.send('transcription-complete', message.data);
+                break;
+              case 'recording_started':
+                mainWindow?.webContents.send('recording-started', message.data);
+                break;
+              case 'recording_stopped':
+                mainWindow?.webContents.send('recording-stopped', message.data);
+                break;
+              case 'error':
+                mainWindow?.webContents.send('error', message.data);
+                break;
+              default:
+                console.log('Unknown message type:', message.type);
+            }
           } catch (error) {
             console.error('Failed to parse WebSocket message:', error);
           }
@@ -37,6 +57,7 @@ export function setupIPC(mainWindow: BrowserWindow): void {
 
         ws.on('error', (error: Error) => {
           console.error('WebSocket error:', error);
+          mainWindow?.webContents.send('error', { message: error.message });
           reject(error);
         });
 

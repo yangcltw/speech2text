@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useStore } from '../store';
 
+interface TranscriptionResponse {
+  text: string;
+  segments?: Array<any>;
+  language?: string;
+  duration?: number;
+}
+
 export const AudioRecorder: React.FC = () => {
-  const { setError } = useStore();
+  const { setError, setTranscription, setProcessing } = useStore();
   const [isRecording, setRecording] = useState<boolean>(false);
   const [recordingTime, setRecordingTime] = useState<number>(0);
   const [isApiReady, setApiReady] = useState<boolean>(false);
@@ -19,10 +26,46 @@ export const AudioRecorder: React.FC = () => {
     };
     checkApi();
 
+    // Set up event listeners
+    let removeTranscriptionProgress: (() => void) | null = null;
+    let removeTranscriptionComplete: (() => void) | null = null;
+    let removeErrorListener: (() => void) | null = null;
+
+    if (window.electron) {
+      removeTranscriptionProgress = window.electron.onTranscriptionProgress((data: TranscriptionResponse) => {
+        console.log('Transcription progress:', data);
+        if (typeof data === 'string') {
+          setTranscription(data);
+        } else if (data && typeof data === 'object') {
+          setTranscription(data.text || '');
+        }
+      });
+
+      removeTranscriptionComplete = window.electron.onTranscriptionComplete((data: TranscriptionResponse) => {
+        console.log('Transcription complete:', data);
+        if (typeof data === 'string') {
+          setTranscription(data);
+        } else if (data && typeof data === 'object') {
+          setTranscription(data.text || '');
+        }
+        setProcessing(false);
+      });
+
+      removeErrorListener = window.electron.onError((error) => {
+        console.error('Error from backend:', error);
+        setError(error.message || 'Unknown error');
+        setProcessing(false);
+      });
+    }
+
     return () => {
       if (isRecording) {
         handleStopRecording();
       }
+      // Clean up event listeners
+      if (removeTranscriptionProgress) removeTranscriptionProgress();
+      if (removeTranscriptionComplete) removeTranscriptionComplete();
+      if (removeErrorListener) removeErrorListener();
     };
   }, []);
 
@@ -34,6 +77,8 @@ export const AudioRecorder: React.FC = () => {
 
     try {
       console.log('Starting recording...');
+      setProcessing(true);
+      setTranscription(''); // Clear previous transcription
       await window.electron.startRecording();
       setRecording(true);
       setRecordingTime(0);
@@ -42,8 +87,9 @@ export const AudioRecorder: React.FC = () => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Failed to start recording: ${errorMessage}`);
       setRecording(false);
+      setProcessing(false);
     }
-  }, [isApiReady, setError]);
+  }, [isApiReady, setError, setProcessing, setTranscription]);
 
   const handleStopRecording = useCallback(async () => {
     if (!isApiReady) {
@@ -58,10 +104,11 @@ export const AudioRecorder: React.FC = () => {
       console.error('Stop recording error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Failed to stop recording: ${errorMessage}`);
+      setProcessing(false);
     } finally {
       setRecording(false);
     }
-  }, [isApiReady, setError]);
+  }, [isApiReady, setError, setProcessing]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
